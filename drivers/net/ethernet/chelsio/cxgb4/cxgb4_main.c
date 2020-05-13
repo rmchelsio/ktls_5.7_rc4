@@ -1255,9 +1255,27 @@ int cxgb4_set_rspq_intr_params(struct sge_rspq *q,
 
 static int cxgb_set_features(struct net_device *dev, netdev_features_t features)
 {
-	const struct port_info *pi = netdev_priv(dev);
 	netdev_features_t changed = dev->features ^ features;
+	const struct port_info *pi = netdev_priv(dev);
+#ifdef CONFIG_CHELSIO_TLS_DEVICE
+	u8 user_enable;
+#endif
 	int err;
+
+#ifdef CONFIG_CHELSIO_TLS_DEVICE
+	/* tls offload will be enabled runtime on user request only, we are
+	 * going to inform the same to FW.
+	 */
+	user_enable = FW_PARAMS_PARAM_DEV_KTLS_HW_USER_ENABLE;
+	if ((changed & NETIF_F_HW_TLS_TX) &&
+	    (pi->adapter->params.crypto & FW_CAPS_CONFIG_TLS_HW)) {
+		err = cxgb4_set_ktls_feature(pi->adapter, pi->port_id,
+					     !!(features & NETIF_F_HW_TLS_TX),
+					     user_enable);
+		if (err)
+			return err;
+	}
+#endif
 
 	if (!(changed & NETIF_F_HW_VLAN_CTAG_RX))
 		return 0;

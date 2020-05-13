@@ -380,11 +380,15 @@ static void chcr_ktls_dev_del(struct net_device *netdev,
 	struct chcr_ktls_ofld_ctx_tx *tx_ctx =
 				chcr_get_ktls_tx_context(tls_ctx);
 	struct chcr_ktls_info *tx_info = tx_ctx->chcr_info;
+	struct chcr_stats_debug *stats;
+	u32 pending_disable;
 	struct sock *sk;
 
 	if (!tx_info)
 		return;
 	sk = tx_info->sk;
+	stats = &tx_info->adap->chcr_stats;
+	pending_disable = atomic_read(&stats->ktls_pending_disable);
 
 	spin_lock(&tx_info->lock);
 	tx_info->connection_state = KTLS_CONN_CLOSED;
@@ -408,7 +412,23 @@ static void chcr_ktls_dev_del(struct net_device *netdev,
 				 tx_info->tid, tx_info->ip_family);
 	}
 
-	atomic64_inc(&tx_info->adap->chcr_stats.ktls_tx_connection_close);
+	atomic64_inc(&stats->ktls_tx_connection_close);
+	atomic64_dec(&stats->ktls_tx_active_connection);
+	/* check if ktls settings are no more required. */
+	if (!atomic64_read(&stats->ktls_tx_active_connection) &&
+	    pending_disable) {
+		/* clean ktls setting now */
+		pr_info("Disabled Ktls settings, other ofld can be used now\n");
+		/* clear pending disable first */
+		atomic_set(&stats->ktls_pending_disable, 0);
+		/* t6 has 2 ports, pending_disable can be 1b (for port 0) or
+		 * 10b (for port 1).
+		 */
+		cxgb4_set_ktls_feature(tx_info->adap,
+				       (pending_disable & 1) ? 0 : 1,
+				       FW_PARAMS_PARAM_DEV_KTLS_HW_DISABLE,
+				       FW_PARAMS_PARAM_DEV_KTLS_HW_USER_ENABLE);
+	}
 	kvfree(tx_info);
 	tx_ctx->chcr_info = NULL;
 }
@@ -529,6 +549,7 @@ static int chcr_ktls_dev_add(struct net_device *netdev, struct sock *sk,
 		goto out2;
 
 	atomic64_inc(&adap->chcr_stats.ktls_tx_connection_open);
+	atomic64_inc(&adap->chcr_stats.ktls_tx_active_connection);
 	return 0;
 out2:
 	kvfree(tx_info);
@@ -552,7 +573,6 @@ void chcr_enable_ktls(struct adapter *adap)
 
 	for_each_port(adap, i) {
 		netdev = adap->port[i];
-		netdev->features |= NETIF_F_HW_TLS_TX;
 		netdev->hw_features |= NETIF_F_HW_TLS_TX;
 		netdev->tlsdev_ops = &chcr_ktls_ops;
 	}
@@ -570,7 +590,13 @@ void chcr_disable_ktls(struct adapter *adap)
 		netdev = adap->port[i];
 		netdev->features &= ~NETIF_F_HW_TLS_TX;
 		netdev->hw_features &= ~NETIF_F_HW_TLS_TX;
+		/* user might have set it, clear it */
+		netdev->wanted_features &= ~NETIF_F_HW_TLS_TX;
 		netdev->tlsdev_ops = NULL;
+		/* clean ktls setting now */
+		cxgb4_set_ktls_feature(adap, i,
+				       FW_PARAMS_PARAM_DEV_KTLS_HW_DISABLE,
+				       FW_PARAMS_PARAM_DEV_KTLS_HW_USER_ENABLE);
 	}
 }
 

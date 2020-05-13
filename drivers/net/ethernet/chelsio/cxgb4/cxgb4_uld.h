@@ -361,6 +361,9 @@ struct chcr_stats_debug {
 	atomic_t tls_pdu_rx;
 	atomic_t tls_key;
 #ifdef CONFIG_CHELSIO_TLS_DEVICE
+	atomic_t   ktls_enable;
+	atomic_t   ktls_pending_disable;
+	atomic64_t ktls_tx_active_connection;
 	atomic64_t ktls_tx_connection_open;
 	atomic64_t ktls_tx_connection_fail;
 	atomic64_t ktls_tx_connection_close;
