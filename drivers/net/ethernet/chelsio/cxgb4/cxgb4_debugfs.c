@@ -3411,12 +3411,6 @@ static int chcr_stats_show(struct seq_file *seq, void *v)
 		   atomic_read(&adap->chcr_stats.tls_key));
 #ifdef CONFIG_CHELSIO_TLS_DEVICE
 	seq_puts(seq, "\nChelsio KTLS Crypto Accelerator Stats\n");
-	seq_printf(seq, "Feature enabled:                  %20d\n",
-		   atomic_read(&adap->chcr_stats.ktls_enable));
-	seq_printf(seq, "Feature pending disabled:         %20d\n",
-		   atomic_read(&adap->chcr_stats.ktls_pending_disable));
-	seq_printf(seq, "Tx HW offload active connection:  %20llu\n",
-		   atomic64_read(&adap->chcr_stats.ktls_tx_active_connection));
 	seq_printf(seq, "Tx HW offload contexts added:     %20llu\n",
 		   atomic64_read(&adap->chcr_stats.ktls_tx_ctx));
 	seq_printf(seq, "Tx connection created:            %20llu\n",

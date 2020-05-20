@@ -2052,8 +2052,4 @@ int cxgb_open(struct net_device *dev);
 int cxgb_close(struct net_device *dev);
 void cxgb4_enable_rx(struct adapter *adap, struct sge_rspq *q);
 void cxgb4_quiesce_rx(struct sge_rspq *q);
-#ifdef CONFIG_CHELSIO_TLS_DEVICE
-int cxgb4_set_ktls_feature(struct adapter *adap, u8 port_id, bool enable,
-			   u8 user_enable);
-#endif
 #endif /* __CXGB4_H__ */

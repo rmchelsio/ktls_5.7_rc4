@@ -347,21 +347,21 @@ static void __exit chcr_crypto_exit(void)
 	mutex_lock(&drv_data.drv_mutex);
 	list_for_each_entry_safe(u_ctx, tmp, &drv_data.act_dev, entry) {
 		adap = padap(&u_ctx->dev);
+		memset(&adap->chcr_stats, 0, sizeof(adap->chcr_stats));
 #ifdef CONFIG_CHELSIO_TLS_DEVICE
 		if (u_ctx->lldi.ulp_crypto & ULP_CRYPTO_KTLS_INLINE)
 			chcr_disable_ktls(adap);
 #endif
-		memset(&adap->chcr_stats, 0, sizeof(adap->chcr_stats));
 		list_del(&u_ctx->entry);
 		kfree(u_ctx);
 	}
 	list_for_each_entry_safe(u_ctx, tmp, &drv_data.inact_dev, entry) {
 		adap = padap(&u_ctx->dev);
+		memset(&adap->chcr_stats, 0, sizeof(adap->chcr_stats));
 #ifdef CONFIG_CHELSIO_TLS_DEVICE
 		if (u_ctx->lldi.ulp_crypto & ULP_CRYPTO_KTLS_INLINE)
 			chcr_disable_ktls(adap);
 #endif
-		memset(&adap->chcr_stats, 0, sizeof(adap->chcr_stats));
 		list_del(&u_ctx->entry);
 		kfree(u_ctx);
 	}
